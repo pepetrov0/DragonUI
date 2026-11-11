@@ -59,6 +59,8 @@ L["Automatically select greed or disenchant (when available) on green quality it
 
 -- Settings window
 L["Settings Window"] = true
+L["Window Borders"] = true
+L["Art of the metal border around every window. Auto follows the unit frame art."] = true
 L["Size of this window on top of your UI scale; 1.0 matches the other panels. It never grows past the screen."] = true
 
 -- UI scale

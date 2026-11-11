@@ -514,6 +514,7 @@ local defaults = {
             gryphonOffsetX = 0,
             gryphonOffsetY = 0,
             xpbar = 'dragonflightui',
+            window_borders = 'auto', -- auto | dragonui | forever: art of every window border; auto follows unitframe.frame_style
             exhaustion_tick = true -- Show exhaustion tick (on by default)
         },
 

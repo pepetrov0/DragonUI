@@ -4,7 +4,6 @@ local addon = select(2, ...)
 local CP = addon.CharacterPanel
 
 local ROCK = addon._dir .. "UI\\ui-background-rock"
-local REDBUTTON = addon._dir .. "UI\\redbutton2x"
 
 local STREAK_Y, STREAK_H = 21, 43
 
@@ -197,24 +196,8 @@ function CP.ModernizeCloseButton(cb, owner, x, y)
     cb._duiModernized = true
 
     cb:SetSize(24, 24)
-    cb._duiOwner, cb._duiX, cb._duiY = owner, x or 1, y or 0
-    cb:ClearAllPoints()
-    cb:SetPoint("TOPRIGHT", owner, "TOPRIGHT", cb._duiX, cb._duiY)
-
-    -- All four UIPanelCloseButtonNoScripts states; 41..79 on this sheet is disabled, not pushed.
-    local function dress(getter, l, r, t, b, blend)
-        local tex = cb[getter] and cb[getter](cb)
-        if not tex then return end
-        tex:SetTexture(REDBUTTON)
-        tex:SetTexCoord(l, r, t, b)
-        if blend then tex:SetBlendMode(blend) end
-    end
-
-    dress("GetNormalTexture", 39/256, 75/256, 1/128, 39/128)
-    dress("GetPushedTexture", 39/256, 75/256, 81/128, 119/128)
-    dress("GetDisabledTexture", 39/256, 75/256, 41/128, 79/128)
-    -- Left as the client's old minimize glow otherwise: a square Wrath flare over a modern red X.
-    dress("GetHighlightTexture", 115/256, 151/256, 1/128, 39/128, "ADD")
+    -- Art and spot both follow the "Window Borders" style.
+    DragonUI_NineSlice.SkinCloseButton(cb, owner, x, y)
 end
 
 local WINDOW_NINESLICE = {
@@ -276,8 +259,7 @@ end
 function CP.ReanchorCloseButton()
     local cb = _G.CharacterFrameCloseButton
     if not cb or not cb._duiModernized then return end
-    cb:ClearAllPoints()
-    cb:SetPoint("TOPRIGHT", cb._duiOwner or _G.CharacterFrame, "TOPRIGHT", cb._duiX, cb._duiY)
+    DragonUI_NineSlice.PlaceCloseButton(cb)
 end
 
 local function applyCloseButton()

@@ -14,6 +14,8 @@ ForeverAtlas["ui-frame-metal-cornerbottomleft"] = { DIR .. "chrome-frame", 95, 1
 ForeverAtlas["ui-frame-metal-cornerbottomright"] = { DIR .. "chrome-frame", 95, 100, 4/1024, 194/1024, 268/512, 468/512 }
 ForeverAtlas["ui-frame-metal-cornertopleft"] = { DIR .. "chrome-frame", 95, 95, 466/1024, 656/1024, 268/512, 458/512 }
 ForeverAtlas["ui-frame-metal-cornertopright"] = { DIR .. "chrome-frame", 95, 95, 664/1024, 854/1024, 268/512, 458/512 }
+-- The portrait cutout ships with the professions art; window borders in the Forever style borrow it.
+ForeverAtlas["ui-frame-portraitmetal-cornertopleft"] = { addon._dir .. "Professions\\ProfessionsUI", 95, 95, 226/1024, 416/1024, 4/512, 194/512 }
 
 ForeverAtlas["!optionsframe-nineslice-edgeleft"] = { DIR .. "chrome-dialog", 32, 32, 276/512, 308/512, 276/512, 308/512 }
 ForeverAtlas["!optionsframe-nineslice-edgeright"] = { DIR .. "chrome-dialog", 32, 32, 316/512, 348/512, 276/512, 308/512 }
@@ -84,6 +86,15 @@ ForeverAtlas["redbutton-exit"] = { DIR .. "chrome-buttons", 32, 32, 292/512, 356
 ForeverAtlas["redbutton-exit-disabled"] = { DIR .. "chrome-buttons", 32, 32, 364/512, 428/512, 148/512, 212/512 }
 ForeverAtlas["redbutton-exit-pressed"] = { DIR .. "chrome-buttons", 32, 32, 436/512, 500/512, 148/512, 212/512 }
 ForeverAtlas["redbutton-highlight"] = { DIR .. "chrome-buttons", 32, 32, 4/512, 68/512, 220/512, 284/512 }
+-- The maximize/minimize pair, cut from WoW Forever's RedButtons2xC60. Named as the client names
+-- them (-c60) because DragonUI's own atlas already owns the plain names.
+ForeverAtlas["redbutton-condense-c60"] = { DIR .. "chrome-buttons", 33, 33, 4/512, 70/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-condense-disabled-c60"] = { DIR .. "chrome-buttons", 33, 33, 74/512, 140/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-condense-pressed-c60"] = { DIR .. "chrome-buttons", 33, 33, 144/512, 210/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-expand-c60"] = { DIR .. "chrome-buttons", 33, 33, 214/512, 280/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-expand-disabled-c60"] = { DIR .. "chrome-buttons", 33, 33, 284/512, 350/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-expand-pressed-c60"] = { DIR .. "chrome-buttons", 33, 33, 354/512, 420/512, 296/512, 362/512 }
+ForeverAtlas["redbutton-highlight-c60"] = ForeverAtlas["redbutton-highlight"]
 
 ForeverUI.ChromeLayouts = {
     metalframe = {

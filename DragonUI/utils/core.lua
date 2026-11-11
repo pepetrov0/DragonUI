@@ -37,7 +37,8 @@ _G.DragonUI_Mixin = function(target, ...)
 end
 
 local function requireAtlas(name)
-	local entry = addon.atlasinfo[name]
+	-- Forever's names are all lower case and DragonUI's are not, so one namespace holds both kits.
+	local entry = addon.atlasinfo[name] or (addon.ForeverAtlas and addon.ForeverAtlas[name])
 	if not entry then
 		error(("DragonUI: unknown atlas %s"):format(tostring(name)), 3)
 	end

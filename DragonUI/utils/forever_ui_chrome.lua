@@ -94,8 +94,26 @@ local function SetColor(texture, color)
     texture:SetVertexColor(color[1], color[2], color[3], color[4] or 1)
 end
 
+-- Window and dialog borders follow the "Window Borders" style through the shared nine-slice;
+-- the options-only trims (optionsbox, innerframe) have no DragonUI twin and stay Forever's.
+local SHARED_LAYOUTS = { metalframe = "NoPortraitFrameTemplate", diamond = "Dialog" }
+local SHARED_PIECES = {
+    TopLeft = "TopLeftCorner", TopRight = "TopRightCorner", BottomLeft = "BottomLeftCorner",
+    BottomRight = "BottomRightCorner", Top = "TopEdge", Bottom = "BottomEdge", Left = "LeftEdge", Right = "RightEdge",
+}
+
 -- Corners sit on their own anchor point, edges span the gap between corners (stretched: the strips are uniform).
 function ForeverUI.ApplyNineSlice(frame, layoutName, layer)
+    local shared = SHARED_LAYOUTS[layoutName]
+    if shared then
+        layer = layer or "BORDER"
+        DragonUI_NineSlice.ApplyLayout(frame, DragonUI_NineSlice.GetLayout(shared), nil, layer)
+        local pieces = {}
+        for short, long in pairs(SHARED_PIECES) do
+            pieces[short] = frame[long]
+        end
+        return pieces
+    end
     local layout = type(layoutName) == "table" and layoutName or Layouts[layoutName]
     layer = layer or "BORDER"
     local scale = layout.scale or 1
@@ -249,7 +267,8 @@ local function AddClose(frame, opts, x, y)
             end
         end,
     })
-    frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", x, y)
+    -- A window's close follows the "Window Borders" style, like its border.
+    DragonUI_NineSlice.SkinCloseButton(frame.CloseButton, frame, x + 3, y - 1, x, y)
     frame.CloseButton:SetFrameLevel(frame:GetFrameLevel() + 10)
 end
 

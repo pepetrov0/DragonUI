@@ -481,17 +481,22 @@ local function modeTooltip()
     tip:Show()
 end
 
+-- Art follows the "Window Borders" style, like the close button beside it.
 function Book.PaintModeButton()
+    if not modeButton then return end
+    local art = DragonUI_NineSlice.ButtonAtlas
     local atlas = Book.Wide() and "redbutton-condense" or "redbutton-expand"
-    modeButton:GetNormalTexture():SetAtlasTexture(atlas)
-    modeButton:GetPushedTexture():SetAtlasTexture(atlas .. "-pressed")
-    modeButton:GetDisabledTexture():SetAtlasTexture(atlas .. "-disabled")
+    modeButton:GetNormalTexture():SetAtlasTexture(art(atlas))
+    modeButton:GetPushedTexture():SetAtlasTexture(art(atlas .. "-pressed"))
+    modeButton:GetDisabledTexture():SetAtlasTexture(art(atlas .. "-disabled"))
+    modeButton:GetHighlightTexture():SetAtlasTexture(art("redbutton-highlight"))
     if tip:IsOwned(modeButton) then modeTooltip() end
 end
 
 local function buildModeButton(root)
     modeButton = CreateFrame("Button", nil, root)
     modeButton:SetSize(24, 24)
+    -- Until the close button exists (Book.SeatModeButton); then it rides beside it in either style.
     modeButton:SetPoint("TOPRIGHT", root, "TOPRIGHT", -24, 0)
     modeButton:SetFrameLevel(Book.Level("buttons"))
     -- Every state needs a texture object before SetAtlasTexture can dress it.
@@ -504,6 +509,14 @@ local function buildModeButton(root)
     modeButton:SetScript("OnClick", function() Book.SetMinimized(Book.Wide()) end)
     modeButton:SetScript("OnEnter", modeTooltip)
     modeButton:SetScript("OnLeave", GameTooltip_Hide)
+    DragonUI_NineSlice.OnRestyle(Book.PaintModeButton)
+end
+
+-- A small gap left of the close button, wherever the "Window Borders" style seats that.
+function Book.SeatModeButton(close)
+    if not modeButton then return end
+    modeButton:ClearAllPoints()
+    modeButton:SetPoint("TOPRIGHT", close, "TOPLEFT", -3, 0)
 end
 
 -- Pager and empty line ----------------------------------------------------------------------------

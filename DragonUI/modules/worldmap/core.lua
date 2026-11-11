@@ -396,16 +396,19 @@ end
 -- CONTROLS
 -- ============================================================================
 
+-- Art follows the "Window Borders" style, like the close button beside it.
 local function setButtonState(button, atlas)
-    button:GetNormalTexture():SetAtlasTexture(atlas)
-    button:GetPushedTexture():SetAtlasTexture(atlas .. "-pressed")
-    button:GetDisabledTexture():SetAtlasTexture(atlas .. "-disabled")
+    local art = DragonUI_NineSlice.ButtonAtlas
+    button:GetNormalTexture():SetAtlasTexture(art(atlas))
+    button:GetPushedTexture():SetAtlasTexture(art(atlas .. "-pressed"))
+    button:GetDisabledTexture():SetAtlasTexture(art(atlas .. "-disabled"))
+    button:GetHighlightTexture():SetAtlasTexture(art("redbutton-highlight"))
 end
 
 function WM.BuildMaxMinButton(border, close)
     local button = CreateFrame("Button", "DragonUIWorldMapMaximizeButton", border)
     button:SetSize(24, 24)
-    button:SetPoint("RIGHT", close, "LEFT", -1, 0)
+    button:SetPoint("RIGHT", close, "LEFT", -3, 0)
     button:SetFrameLevel(BASE_LEVEL + 5)
     button:SetNormalTexture(ROCK)
     button:SetPushedTexture(ROCK)
@@ -434,6 +437,7 @@ function WM.BuildMaxMinButton(border, close)
     end)
     button:SetScript("OnLeave", function() GameTooltip:Hide() end)
     refresh()
+    DragonUI_NineSlice.OnRestyle(refresh)
     return button
 end
 
@@ -511,9 +515,9 @@ local function onWindowedChanged()
         WM.ground:Show()
         retireBlizzardWidgets()
         WM.Place()
-        -- Both size toggles re-anchor the close button to the chrome they just showed.
-        WorldMapFrameCloseButton:ClearAllPoints()
-        WorldMapFrameCloseButton:SetPoint("TOPRIGHT", WM.border, "TOPRIGHT", 1, 0)
+        -- Both size toggles re-anchor the close button to the chrome they just showed, at the
+        -- spot the "Window Borders" style gives it (ModernizeCloseButton registered WM.border).
+        DragonUI_NineSlice.PlaceCloseButton(WorldMapFrameCloseButton)
         WM.Layout(true)
     else
         WM.border:Hide()

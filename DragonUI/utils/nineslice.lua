@@ -3,7 +3,7 @@
 
 local addon = select(2, ...)
 
-local ipairs, error = ipairs, error
+local ipairs, pairs, error, setmetatable = ipairs, pairs, error, setmetatable
 
 local atlasShim = addon.AtlasShim
 
@@ -140,11 +140,76 @@ local layoutRegistry = {
 -- Its atlas names embed the texture kit, so one kit picks the whole art set.
 layoutRegistry.UniqueCornersLayout = kitPieces
 
-local function getLayout(name)
+-- ---------------------------------------------------------------------------
+-- Window border styles. Each named window layout has a variant per art kit; GetLayout hands out
+-- the one the "Window Borders" setting picks, so a window built for either kit wears either art.
+-- Layers match the DragonUI variant of the same name so a window's stacking never changes.
+-- ---------------------------------------------------------------------------
+
+-- Forever's metal frame, corner offsets as its own chrome places them (forever_atlas_chrome.lua).
+local function foreverMetal(layer, topLeft, left)
+	return {
+		TopLeftCorner = { layer = layer, atlas = topLeft, x = left, y = 16 },
+		TopRightCorner = { layer = layer, atlas = "ui-frame-metal-cornertopright", x = 2, y = 16 },
+		BottomLeftCorner = { layer = layer, atlas = "ui-frame-metal-cornerbottomleft", x = left, y = -8 },
+		BottomRightCorner = { layer = layer, atlas = "ui-frame-metal-cornerbottomright", x = 2, y = -8 },
+		TopEdge = { layer = layer, atlas = "_ui-frame-metal-edgetop" },
+		BottomEdge = { layer = layer, atlas = "_ui-frame-metal-edgebottom" },
+		LeftEdge = { layer = layer, atlas = "!ui-frame-metal-edgeleft" },
+		RightEdge = { layer = layer, atlas = "!ui-frame-metal-edgeright" },
+	}
+end
+
+local foreverPortrait = foreverMetal("OVERLAY", "ui-frame-portraitmetal-cornertopleft", -13)
+local foreverPlain = foreverMetal("OVERLAY", "ui-frame-metal-cornertopleft", -8)
+
+local styleVariants = {
+	forever = {
+		PortraitFrameTemplate = foreverPortrait,
+		-- Forever has no double corner; the maximize button sits on the plain top edge.
+		PortraitFrameTemplateMinimizable = foreverPortrait,
+		NoPortraitFrameTemplate = foreverPlain,
+		MetalFrameTemplate = foreverPlain,
+		-- Forever's diamond art is the same 64px sheet drawn at half size, flush with the frame.
+		Dialog = {
+			TopLeftCorner = { atlas = "ui-frame-diamondmetal-cornertopleft", scale = 0.5 },
+			TopRightCorner = { atlas = "ui-frame-diamondmetal-cornertopright", scale = 0.5 },
+			BottomLeftCorner = { atlas = "ui-frame-diamondmetal-cornerbottomleft", scale = 0.5 },
+			BottomRightCorner = { atlas = "ui-frame-diamondmetal-cornerbottomright", scale = 0.5 },
+			TopEdge = { atlas = "_ui-frame-diamondmetal-edgetop", scale = 0.5 },
+			BottomEdge = { atlas = "_ui-frame-diamondmetal-edgebottom", scale = 0.5 },
+			LeftEdge = { atlas = "!ui-frame-diamondmetal-edgeleft", scale = 0.5 },
+			RightEdge = { atlas = "!ui-frame-diamondmetal-edgeright", scale = 0.5 },
+		},
+	},
+}
+
+-- The name rides on the table so a frame dressed with it can be redressed when the style changes.
+-- Only window layouts are tagged: the action bars' kit layout has no style to follow.
+for _, variants in pairs(styleVariants) do
+	for name, layout in pairs(variants) do
+		layoutRegistry[name]._name = name
+		variants[name] = setmetatable({ _name = name }, { __index = layout })
+	end
+end
+
+-- "auto" follows the unit frame art, like every other style switch.
+local function currentStyle()
+	local profile = addon.db and addon.db.profile
+	local wanted = profile and profile.style and profile.style.window_borders
+	if wanted == "dragonui" or wanted == "forever" then
+		return wanted
+	end
+	local unitframe = profile and profile.unitframe
+	return unitframe and unitframe.frame_style == "forever" and "forever" or "dragonui"
+end
+
+local function getLayout(name, style)
 	if name == nil then
 		return nil
 	end
-	return layoutRegistry[name]
+	local variants = styleVariants[style or currentStyle()]
+	return variants and variants[name] or layoutRegistry[name]
 end
 
 local function acquirePiece(container, pieceName)
@@ -195,9 +260,17 @@ end
 
 local function dressPiece(tex, spec, textureKit)
 	tex:SetAtlasTexture(atlasShim.GetFinalNameFromTextureKit(spec.atlas, textureKit), true)
+	local scale = spec.scale
+	if scale then
+		tex:SetSize(tex:GetWidth() * scale, tex:GetHeight() * scale)
+	end
 end
 
-local function applyLayout(container, layout, textureKit)
+-- Every container dressed with a named window layout, so a style change can redress it in place.
+local styled = setmetatable({}, { __mode = "k" })
+
+-- layer, when given, overrides each piece's own: the caller owns where its border stacks.
+local function applyLayout(container, layout, textureKit, layer)
 	if not layout then
 		error("DragonUI_NineSlice.ApplyLayout: layout is nil", 2)
 	end
@@ -206,18 +279,136 @@ local function applyLayout(container, layout, textureKit)
 		local spec = layout[rule.name]
 		if spec then
 			local piece, isNew = acquirePiece(container, rule.name)
-			if isNew then
+			if layer then
+				piece:SetDrawLayer(layer)
+			elseif isNew then
 				piece:SetDrawLayer(spec.layer or "BORDER", spec.subLevel)
 			end
 			anchorPiece(container, piece, rule, spec, mode)
 			dressPiece(piece, spec, textureKit)
 		end
 	end
+	if layout._name then
+		styled[container] = { name = layout._name, kit = textureKit, layer = layer }
+	end
+end
+
+-- Close buttons wear the border's art too. Each entry is { file, left, right, top, bottom } per state;
+-- DragonUI's sheet keeps disabled at 41..79, not pushed.
+local REDBUTTON = addon._dir .. "UI\\redbutton2x"
+local closeArt = {
+	dragonui = {
+		Normal = { REDBUTTON, 39/256, 75/256, 1/128, 39/128 },
+		Pushed = { REDBUTTON, 39/256, 75/256, 81/128, 119/128 },
+		Disabled = { REDBUTTON, 39/256, 75/256, 41/128, 79/128 },
+		-- Left as the client's old minimize glow otherwise: a square Wrath flare over a modern red X.
+		Highlight = { REDBUTTON, 115/256, 151/256, 1/128, 39/128 },
+	},
+}
+
+-- Forever's pieces come from its atlas, which loads after this file.
+local function foreverCloseArt()
+	local atlas = addon.ForeverAtlas
+	local function state(name)
+		local info = atlas[name]
+		return { info[1], info[4], info[5], info[6], info[7] }
+	end
+	return {
+		Normal = state("redbutton-exit"),
+		Pushed = state("redbutton-exit-pressed"),
+		Disabled = state("redbutton-exit-disabled"),
+		Highlight = state("redbutton-highlight"),
+	}
+end
+
+local closeButtons = setmetatable({}, { __mode = "k" })
+
+local function dressCloseButton(button)
+	local style = currentStyle()
+	if style == "forever" and not closeArt.forever then
+		closeArt.forever = foreverCloseArt()
+	end
+	local art = closeArt[style] or closeArt.dragonui
+	for _, state in ipairs({ "Normal", "Pushed", "Disabled" }) do
+		local piece = art[state]
+		button["Set" .. state .. "Texture"](button, piece[1])
+		button["Get" .. state .. "Texture"](button):SetTexCoord(piece[2], piece[3], piece[4], piece[5])
+	end
+	local glow = art.Highlight
+	button:SetHighlightTexture(glow[1], "ADD")
+	button:GetHighlightTexture():SetTexCoord(glow[2], glow[3], glow[4], glow[5])
+end
+
+-- Each kit seats its X against its own corner: DragonUI windows at (1, 0), Forever's at (-2, 1).
+local FOREVER_CLOSE_SHIFT_X, FOREVER_CLOSE_SHIFT_Y = -3, 1
+
+local function placeCloseButton(button)
+	local spot = closeButtons[button]
+	if not (spot and spot.owner) then
+		return
+	end
+	local x, y = spot.x, spot.y
+	if currentStyle() == "forever" then
+		x, y = spot.foreverX or x + FOREVER_CLOSE_SHIFT_X, spot.foreverY or y + FOREVER_CLOSE_SHIFT_Y
+	end
+	button:ClearAllPoints()
+	button:SetPoint("TOPRIGHT", spot.owner, "TOPRIGHT", x, y)
+end
+
+-- Dresses a window's close button in the current style and keeps it in step when the style changes.
+-- With an owner it also seats the button: x, y is the DragonUI spot (default 1, 0); the Forever spot
+-- defaults to the same shift Forever's own windows use.
+local function skinCloseButton(button, owner, x, y, foreverX, foreverY)
+	closeButtons[button] = { owner = owner, x = x or 1, y = y or 0, foreverX = foreverX, foreverY = foreverY }
+	dressCloseButton(button)
+	placeCloseButton(button)
+end
+
+-- A red title-bar button's atlas in the current style: Forever's twin carries the client's -c60 suffix.
+local function buttonAtlas(name)
+	if currentStyle() == "forever" then
+		local forever = name .. "-c60"
+		if addon.ForeverAtlas and addon.ForeverAtlas[forever] then
+			return forever
+		end
+	end
+	return name
+end
+
+-- Painters for title-bar buttons a module draws itself (expand/condense); rerun on a style change.
+local restylers = {}
+local function onRestyle(painter)
+	restylers[#restylers + 1] = painter
+end
+
+-- Redresses every styled border with the current style's art; vertex colours (dark mode) survive.
+local function restyle()
+	-- Some close buttons are secure (spellbook); moving those in combat is blocked, so wait it out.
+	if InCombatLockdown() and addon.CombatQueue then
+		addon.CombatQueue:Add("window_borders_restyle", restyle)
+		return
+	end
+	for container, applied in pairs(styled) do
+		applyLayout(container, getLayout(applied.name), applied.kit, applied.layer)
+	end
+	for button in pairs(closeButtons) do
+		dressCloseButton(button)
+		placeCloseButton(button)
+	end
+	for _, painter in ipairs(restylers) do
+		painter()
+	end
 end
 
 _G.DragonUI_NineSlice = {
 	ApplyLayout = applyLayout,
 	GetLayout = getLayout,
+	GetStyle = currentStyle,
+	Restyle = restyle,
+	SkinCloseButton = skinCloseButton,
+	PlaceCloseButton = placeCloseButton,
+	ButtonAtlas = buttonAtlas,
+	OnRestyle = onRestyle,
 }
 
 local function inheritedAttribute(frame, key)

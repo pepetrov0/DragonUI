@@ -17,34 +17,10 @@ local function ForeverAtlas()
     return addon.ForeverAtlas
 end
 
-local function chromeLayout()
-    ForeverAtlas()["dragonui-professions-portraitcorner"] = P.Atlas["portrait-corner"]
-    return {
-        corners = {
-            TopLeft = { "dragonui-professions-portraitcorner", -13, 16 },
-            TopRight = { "ui-frame-metal-cornertopright", 2, 16 },
-            BottomLeft = { "ui-frame-metal-cornerbottomleft", -13, -8 },
-            BottomRight = { "ui-frame-metal-cornerbottomright", 2, -8 },
-        },
-        edges = { Top = "_ui-frame-metal-edgetop", Bottom = "_ui-frame-metal-edgebottom",
-                  Left = "!ui-frame-metal-edgeleft", Right = "!ui-frame-metal-edgeright" },
-    }
-end
-
-local function skinCloseButton(button)
-    local atlas = ForeverAtlas()
-    local function put(setter, getter, name)
-        local info = atlas[name]
-        button[setter](button, info[1])
-        button[getter](button):SetTexCoord(info[4], info[5], info[6], info[7])
-    end
-    put("SetNormalTexture", "GetNormalTexture", "redbutton-exit")
-    put("SetPushedTexture", "GetPushedTexture", "redbutton-exit-pressed")
-    put("SetDisabledTexture", "GetDisabledTexture", "redbutton-exit-disabled")
-    local hl = atlas["redbutton-highlight"]
-    button:SetHighlightTexture(hl[1], "ADD")
-    button:GetHighlightTexture():SetTexCoord(hl[4], hl[5], hl[6], hl[7])
+-- Art and spot follow the "Window Borders" style, like the border it sits on; (-2, 1) is Forever's own seat.
+local function skinCloseButton(button, win)
     button:SetSize(24, 24)
+    DragonUI_NineSlice.SkinCloseButton(button, win, 1, 0, -2, 1)
 end
 
 -- Parks a stock widget we no longer show; Blizzard keeps driving it (state, events, scripts) out of sight.
@@ -118,6 +94,16 @@ function Frame.Build()
         region:Hide()
     end
 
+    -- The 6px nudge every DragonUI window takes; without it the panel system seats this flush
+    -- against its left neighbour and the portrait corner overlaps that window's border.
+    -- On the frame, not in UIPanelWindows: tainting that table blocks the first panel open in combat.
+    if host:GetAttribute("UIPanelLayout-xoffset") ~= 6 then
+        host:SetAttribute("UIPanelLayout-xoffset", 6)
+        if host:IsShown() and UpdateUIPanelPositions then
+            UpdateUIPanelPositions(host)
+        end
+    end
+
     Frame.holder = CreateFrame("Frame", nil, host)
     Frame.holder:Hide()
 
@@ -151,7 +137,8 @@ function Frame.Build()
     local chrome = CreateFrame("Frame", nil, scaler)
     chrome:SetAllPoints(win)
     chrome:SetFrameLevel(level + CHROME_LEVEL)
-    addon.ForeverUI.ApplyNineSlice(chrome, chromeLayout(), "BORDER")
+    -- The portrait window border, in whichever art the "Window Borders" setting picks.
+    DragonUI_NineSlice.ApplyLayout(chrome, DragonUI_NineSlice.GetLayout("PortraitFrameTemplate"), nil, "BORDER")
     Frame.chrome = chrome
 
     Frame.title = chrome:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -162,9 +149,7 @@ function Frame.Build()
 
     -- Its click hides the parent panel, so it stays TradeSkillFrame's child and only moves above the chrome.
     local close = TradeSkillFrameCloseButton
-    close:ClearAllPoints()
-    close:SetPoint("TOPRIGHT", win, "TOPRIGHT", -2, 1)
-    skinCloseButton(close)
+    skinCloseButton(close, win)
     close:SetFrameLevel(level + TOP_LEVEL)
 
     Frame.Retire(TradeSkillCancelButton)

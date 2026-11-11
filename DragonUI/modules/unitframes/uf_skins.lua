@@ -549,6 +549,10 @@ function UF.RefreshSkins()
             refresh(addon)
         end
     end
+    -- Window borders on "auto" follow the unit frame art.
+    if DragonUI_NineSlice then
+        DragonUI_NineSlice.Restyle()
+    end
     if addon.PlayerFrame and addon.PlayerFrame.RefreshPlayerFrame then
         addon.PlayerFrame.RefreshPlayerFrame()
     end

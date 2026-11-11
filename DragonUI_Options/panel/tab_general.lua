@@ -430,6 +430,21 @@ local function BuildGeneralTab(scroll)
     C:AddSpacer(scroll)
 
     -- ====================================================================
+    -- WINDOW BORDERS
+    -- ====================================================================
+    local borders = C:AddSection(scroll, LO["Window Borders"])
+
+    C:AddDropdown(borders, {
+        label = LO["Window Borders"],
+        desc = LO["Art of the metal border around every window. Auto follows the unit frame art."],
+        dbPath = "style.window_borders",
+        values = { auto = LO["Auto"], dragonui = LO["DragonUI"], forever = LO["Forever"] },
+        callback = function() DragonUI_NineSlice.Restyle() end,
+    })
+
+    C:AddSpacer(scroll)
+
+    -- ====================================================================
     -- LANGUAGE
     -- ====================================================================
     local language = C:AddSection(scroll, LO["Language"])

@@ -267,6 +267,7 @@ local function buildClose(root)
     close:SetAttribute("_onclick", [[self:GetFrameRef("root"):Hide()]])
     local CP = addon.CharacterPanel
     if CP and CP.ModernizeCloseButton then CP.ModernizeCloseButton(close, root, 1, 0) end
+    Book.SeatModeButton(close)
 end
 
 local turners = {}
